@@ -4,7 +4,8 @@ This repository contains both the CDK files and the sample application Java code
 
 ## Usage
 
-[!IMPORTANT] The stack requires the sample application code folder to be named `flightApp`. If you intend on running the stack without going through the blog post instructions, then make sure you rename the `sampleAppCode` folder to `flightApp`. [!IMPORTANT]
+> [!IMPORTANT]
+> The stack requires the sample application code folder to be named `flightApp`. If you intend on running the stack without going through the blog post instructions, then make sure you rename the `sampleAppCode` folder to `flightApp`.
 
 ### Pre-requisites
 
