@@ -26,7 +26,6 @@ export class AppStack extends cdk.Stack {
         const cdcStream = new kinesis.Stream(this, 'flightsCDCStream', {
             streamName: 'flightsCDCStream',
         })
-        cdcStream.grantReadWrite(appRole);
 
         //Our DynamoDB table
         const flightTable = new dynamodb.Table(this, 'flight', {
@@ -39,6 +38,25 @@ export class AppStack extends cdk.Stack {
             },
         });
         flightTable.grantReadWriteData(appRole);
+
+        const kinesisPolicy = new iam.Policy(this, 'kinesisPolicy', {
+            statements: [new iam.PolicyStatement({
+                actions: [
+                    "kinesis:DescribeStream",
+                    "kinesis:DescribeStreamConsumer",
+                    "kinesis:DescribeStreamSummary",
+                    "kinesis:GetShardIterator",
+                    "kinesis:GetRecords",
+                    "kinesis:ListShards",
+                    "kinesis:ListStreamConsumers",
+                    "kinesis:ListStreams",
+                    "kinesis:SubscribeToShard",
+                    "kinesis:RegisterStreamConsumer"
+                ],
+                resources: [`${cdcStream.streamArn}*`],
+            })],
+        })
+        appRole.attachInlinePolicy(kinesisPolicy);
 
         //Proper permissions to the Cloud Stream DynamoDB tables
         const dynamoDBPolicy = new iam.Policy(this, 'dynamoDBPolicy', {
@@ -53,15 +71,26 @@ export class AppStack extends cdk.Stack {
                     "dynamodb:UpdateItem",
                     "dynamodb:DescribeTable",
                     "dynamodb:DeleteItem",
-                    "dynamodb:CreateTable"
+                    "dynamodb:CreateTable",
                 ],
                 resources: [
                     `arn:aws:dynamodb:${this.region}:${this.account}:table/SpringIntegrationMetadataStore`,
-                    `arn:aws:dynamodb:${this.region}:${this.account}:table/SpringIntegrationLockRegistry`
+                    `arn:aws:dynamodb:${this.region}:${this.account}:table/SpringIntegrationLockRegistry`,
+                    `arn:aws:dynamodb:${this.region}:${this.account}:table/group-*`
                 ],
             })],
         })
         appRole.attachInlinePolicy(dynamoDBPolicy);
+
+        const cloudWatchPolicy = new iam.Policy(this, 'cloudWatchPolicy', {
+            statements: [new iam.PolicyStatement({
+                actions: [
+                    "cloudwatch:PutMetricData"
+                ],
+                resources: ["*"]
+            })],
+        });
+        appRole.attachInlinePolicy(cloudWatchPolicy);
 
         //Our application in AWS Fargate + ALB
         const flightApp = new ecs_patterns.ApplicationLoadBalancedFargateService(this, 'FlightAppSvc', {
